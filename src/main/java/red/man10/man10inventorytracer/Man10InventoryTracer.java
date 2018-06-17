@@ -81,7 +81,7 @@ public final class Man10InventoryTracer extends JavaPlugin implements Listener {
                     ResultSet rs = mysql.query("SELECT id,data FROM man10_item_database");
                     try {
                         while(rs.next()){
-                            map.put(itemFromBase64(rs.getString("data")),rs.getInt("id"));
+                            map.put(itemFromBase64(rs.getString("data"), 1),rs.getInt("id"));
                         }
                         rs.close();
                         mysql.close();
@@ -147,7 +147,7 @@ public final class Man10InventoryTracer extends JavaPlugin implements Listener {
         }else{
             return map.inverse().get(id);
         }
-        ItemStack item = itemFromBase64(data);
+        ItemStack item = itemFromBase64(data, 1);
         this.map.put(item, id);
         return item;
     }
@@ -157,7 +157,7 @@ public final class Man10InventoryTracer extends JavaPlugin implements Listener {
             Inventory inv = p.getInventory();
             String query = "";
             for(int i = 0; i < inv.getContents().length; i++){
-                query += getItemId(inv.getContents()[i]) + ",";
+                query += getItemId(inv.getContents()[i]) + "|" + inv.getContents()[i].getAmount() + ",";
             }
             String FinalQuery = query.substring(0, query.length() - 1);
             mysql.execute("INSERT INTO man10_inventory_database (`id`,`name`,`uuid`,`data`,`date_time`) VALUES ('0','" + p.getName() + "','" + p.getUniqueId() + "','" + FinalQuery + "','" + mysql.currentTimeNoBracket() + "');");
@@ -214,10 +214,20 @@ public final class Man10InventoryTracer extends JavaPlugin implements Listener {
         Inventory inv = Bukkit.createInventory(null, 45, "test");
         String[] stirngs = data.split(",");
         for(int i = 0;i < stirngs.length - 5;i++){
-            inv.setItem(i + 9, getItem(Integer.parseInt(stirngs[i])));
+            String[] a = stirngs[i].split("|");
+            ItemStack item = getItem(Integer.parseInt(stirngs[i]));
+            if (item != null) {
+                item.setAmount(Integer.parseInt(a[1]));
+            }
+            inv.setItem(i + 9, item);
         }
         for(int i = 0;i < 5;i++){
-            inv.setItem(i, getItem(Integer.parseInt(stirngs[i + 36])));
+            String[] a = stirngs[i].split("|");
+            ItemStack item = getItem(Integer.parseInt(stirngs[i + 36]));
+            if (item != null) {
+                item.setAmount(Integer.parseInt(a[1]));
+            }
+            inv.setItem(i, item);
         }
 
         return inv;
@@ -261,7 +271,7 @@ public final class Man10InventoryTracer extends JavaPlugin implements Listener {
         return data;
     }
 
-    public static ItemStack itemFromBase64(String data) {
+    public static ItemStack itemFromBase64(String data, int amount) {
         try {
             ByteArrayInputStream inputStream = new ByteArrayInputStream(Base64Coder.decodeLines(data));
             BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream);
@@ -284,6 +294,7 @@ public final class Man10InventoryTracer extends JavaPlugin implements Listener {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             BukkitObjectOutputStream dataOutput = new BukkitObjectOutputStream(outputStream);
             ItemStack[] items = new ItemStack[1];
+            item.setAmount(1);
             items[0] = item;
             dataOutput.writeInt(items.length);
 
